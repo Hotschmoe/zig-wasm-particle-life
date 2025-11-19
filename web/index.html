@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zig WebGPU Particle Life</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: monospace;
+            color: #eee;
+        }
+
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: fixed;
+        }
+
+        #info {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            color: #bbb;
+            font-size: 14px;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        #info a {
+            pointer-events: auto;
+        }
+
+        .panel {
+            background-color: rgba(50, 50, 50, 0.5);
+            border-radius: 12px;
+            border: 2px solid #eee;
+            color: #eee;
+            padding: 18px;
+            backdrop-filter: blur(4px);
+            font-size: 14px;
+        }
+
+        #toolsPanel {
+            position: fixed;
+            left: 24px;
+            top: 24px;
+            width: 300px;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        #debugPanel {
+            position: fixed;
+            right: 24px;
+            top: 24px;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .sliderContainer {
+            margin-bottom: 8px;
+        }
+
+        .sliderContainer input {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: #ccc;
+            outline: none;
+            width: 100%;
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+
+        .sliderContainer input:hover {
+            background: #999;
+        }
+
+        .sliderContainer input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            border: 2px solid #ccc;
+            background: #777;
+            cursor: pointer;
+        }
+
+        .sliderContainer input::-webkit-slider-thumb:hover {
+            background: #555;
+            border: 2px solid #999;
+        }
+
+        .rowBreak {
+            height: 8px;
+        }
+
+        .checkboxContainer {
+            display: block;
+            position: relative;
+            cursor: pointer;
+            padding-left: 28px;
+            padding-top: 4px;
+            padding-bottom: 4px;
+            user-select: none;
+            margin-bottom: 8px;
+        }
+
+        .checkboxContainer input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+
+        .customCheckbox {
+            position: absolute;
+            top: 4px;
+            left: 0px;
+            height: 20px;
+            width: 20px;
+            background-color: #eee;
+            border-radius: 4px;
+        }
+
+        .checkboxContainer input:checked~.customCheckbox {
+            background-color: #777;
+        }
+
+        .customCheckbox:after {
+            content: "";
+            position: absolute;
+            display: none;
+        }
+
+        .checkboxContainer input:checked~.customCheckbox:after {
+            display: block;
+        }
+
+        .checkboxContainer .customCheckbox:after {
+            left: 6px;
+            top: 2px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 3px 3px 0;
+            transform: rotate(45deg);
+        }
+
+        table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: separate;
+            border-spacing: 4px;
+        }
+
+        .button {
+            background-color: #777;
+            padding: 6px;
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .button:hover {
+            background-color: #555;
+        }
+
+        .button:active {
+            background-color: #444;
+        }
+
+        a {
+            color: #bbb;
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: #eee;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div id="info">
+        <div style="font-weight: bold">Zig + WASM WebGPU Particle Life</div>
+        <div style="font-size: 12px">Port of <a href="https://lisyarus.github.io/blog" target="_blank">Nikita Lisitsa's</a> Sim</div>
+        <div id="status">Loading...</div>
+        <div id="fps"></div>
+    </div>
+
+    <div id="toolsPanel" class="panel">
+        <div class="sliderContainer">
+            <input type="range" min="10" max="20" value="16" class="slider" id="particleCountSlider">
+            <span id="particleCountText">65536 particles</span>
+        </div>
+        <div class="rowBreak"></div>
+        <div class="sliderContainer">
+            <input type="range" min="1" max="16" value="6" class="slider" id="speciesCountSlider">
+            <span id="speciesCountText">6 particle types</span>
+        </div>
+        <div class="rowBreak"></div>
+        <div class="sliderContainer">
+            <input type="range" min="1" max="50" value="16" class="slider" id="simulationWidthSlider">
+            <span id="simulationWidthText">Width: 1024</span>
+        </div>
+        <div class="rowBreak"></div>
+        <div class="sliderContainer">
+            <input type="range" min="1" max="50" value="16" class="slider" id="simulationHeightSlider">
+            <span id="simulationHeightText">Height: 1024</span>
+        </div>
+        <div class="rowBreak"></div>
+        <div class="sliderContainer">
+            <input type="range" min="0" max="100" value="10" class="slider" id="frictionSlider">
+            <span id="frictionText">Friction: 10</span>
+        </div>
+        <div class="rowBreak"></div>
+        <div class="sliderContainer">
+            <input type="range" min="0" max="100" value="0" class="slider" id="centralForceSlider">
+            <span id="centralForceText">Central force: 0</span>
+        </div>
+        <div class="rowBreak"></div>
+        
+        <label class="checkboxContainer">
+            Symmetric forces
+            <input type="checkbox" id="symmetricForces">
+            <span class="customCheckbox"></span>
+        </label>
+        
+        <label class="checkboxContainer">
+            Looping borders
+            <input type="checkbox" id="loopingBorders" checked>
+            <span class="customCheckbox"></span>
+        </label>
+        
+        <div class="rowBreak"></div>
+        
+        <table id="buttonsTable">
+            <tr>
+                <td><div class="button" id="pauseButton">Pause</div></td>
+                <td><div class="button" id="centerViewButton">Center view</div></td>
+            </tr>
+            <tr>
+                <td><div class="button" id="restartButton">Restart</div></td>
+                <td><div class="button" id="randomizeButton">Randomize</div></td>
+            </tr>
+            <!-- Save/Load temporarily disabled until implemented -->
+            <!--
+            <tr>
+                <td><div class="button" id="saveSettingsButton">Save system</div></td>
+                <td><div class="button" id="loadSettingsButton">Load system</div></td>
+            </tr>
+            -->
+            <tr>
+                <td><div class="button" id="copyUrlButton">Copy URL</div></td>
+                <td><div class="button" id="fullscreenButton">Fullscreen</div></td>
+            </tr>
+        </table>
+        
+        <div class="rowBreak"></div>
+        <div style="font-size: 12px; text-align: center; color: #aaa;">
+            [S] to toggle menu<br>
+            LMB to attract, RMB to repel
+        </div>
+    </div>
+
+    <div id="debugPanel" class="panel">
+        <div id="debugInfo">Debug info</div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+
+</html>
