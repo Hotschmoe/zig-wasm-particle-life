@@ -2,7 +2,7 @@
 
 Minimal JavaScript WebGPU FFI bindings for Zig+WASM, tested against Nikita Lisitsa's Particle Life simulation.
 
-[![Zig](https://img.shields.io/badge/Zig-0.13.0-orange.svg)](https://ziglang.org/)
+[![Zig](https://img.shields.io/badge/Zig-0.15.2-orange.svg)](https://ziglang.org/)
 [![WebGPU](https://img.shields.io/badge/WebGPU-Enabled-blue.svg)](https://www.w3.org/TR/webgpu/)
 
 ## Objectives
