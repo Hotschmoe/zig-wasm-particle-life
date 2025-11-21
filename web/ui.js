@@ -197,6 +197,7 @@ export class UI {
         }
 
         // Buttons
+        document.getElementById('toggleSettingsButton')?.addEventListener('click', () => this.toggleSettings());
         document.getElementById('pauseButton')?.addEventListener('click', () => this.togglePause());
         document.getElementById('centerViewButton')?.addEventListener('click', () => {
             if (this.exports.centerView) this.exports.centerView();
@@ -239,11 +240,7 @@ export class UI {
                 e.preventDefault();
             }
             if (e.key === 's') {
-                const panel = document.getElementById('toolsPanel');
-                if (panel) {
-                    panel.style.opacity = panel.style.opacity === '0' ? '1' : '0';
-                    panel.style.visibility = panel.style.visibility === 'hidden' ? 'visible' : 'hidden';
-                }
+                this.toggleSettings();
                 e.preventDefault();
             }
         });
@@ -261,6 +258,15 @@ export class UI {
         this.paused = !this.paused;
         const btn = document.getElementById('pauseButton');
         if (btn) btn.innerText = this.paused ? "Continue" : "Pause";
+    }
+
+    toggleSettings() {
+        const panel = document.getElementById('toolsPanel');
+        if (panel) {
+            const isHidden = panel.style.opacity === '0' || panel.style.visibility === 'hidden';
+            panel.style.opacity = isHidden ? '1' : '0';
+            panel.style.visibility = isHidden ? 'visible' : 'hidden';
+        }
     }
 
     toggleFullscreen() {
